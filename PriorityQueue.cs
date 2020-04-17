@@ -49,11 +49,18 @@ namespace ETimer
             return result;
         }
 
+        public void Assign(IEnumerable<T> handler, T entity)
+        {
+            if (!(handler is Element ele)) throw new Exception("Wrong PriorityQueue element type");
+            
+            ele.entity = entity;
+        }
+
         public void Delete(IEnumerable<T> handler)
         {
-            var ele = handler as Element;
+            if (!(handler is Element ele)) throw new Exception("Wrong PriorityQueue element type");
+            
             ele.entity.DeleteProcess();
-
             PercolateUp(ele.pos, ele);
             Pop();
         }
@@ -82,7 +89,7 @@ namespace ETimer
 
         private void PercolateUp(int index, Element handler)
         {
-            int i = 0;
+            int i;
             for (i = index; heap[i / 2].entity.CompareTo(handler.entity) > 0; i /= 2)
             {
                 heap[i] = heap[i / 2];
