@@ -11,8 +11,15 @@ namespace ETimer
 
     public class PriorityQueue<T> where T : IComparable<T>, IPriorityQueueElement
     {
+        public bool Empty => iCount <= START_INDEX;
+        public int Length => iCount - 1;
 
-        public bool Empty => iCount > 0;
+        public PriorityQueue(T defaultTopValue)
+        {
+            heap = new Element[32];
+            var topEle = new Element { pos = iCount++, entity = defaultTopValue };
+            heap[0] = topEle;
+        }
 
         public IEnumerable<T> Push(T handler)
         {
@@ -23,51 +30,59 @@ namespace ETimer
             return result;
         }
 
-        public T Pop()
+        public bool Pop(out T result)
         {
-            T result = default(T);
+            result = default(T);
 
-            if (iCount != 0)
+            if (iCount != START_INDEX)
             {
-                result = heap[0].entity;
-                heap[0] = heap[--iCount];
-                PercolateDown(0);
+                result = heap[START_INDEX].entity;
+                heap[START_INDEX] = heap[--iCount];
+                PercolateDown(START_INDEX);
+                return true;
             }
 
-            return result;
+            return false;
         }
 
-        public T Peek()
+        public bool Peek(out T result)
         {
-            T result = default(T);
+            result = default(T);
 
-            if (iCount != 0)
+            if (iCount != START_INDEX)
             {
-                result = heap[0].entity;
+                result = heap[START_INDEX].entity;
+                return true;
             }
 
-            return result;
+            return false;
         }
 
         public void Assign(IEnumerable<T> handler, T entity)
         {
             if (!(handler is Element ele)) throw new Exception("Wrong PriorityQueue element type");
-            
+
             ele.entity = entity;
         }
 
         public void Delete(IEnumerable<T> handler)
         {
             if (!(handler is Element ele)) throw new Exception("Wrong PriorityQueue element type");
-            
+
             ele.entity.DeleteProcess();
             PercolateUp(ele.pos, ele);
-            Pop();
+            if (!Pop(out var entity)) throw new Exception("Delete failed");
+        }
+
+        public void Clear()
+        {
+            Array.Clear(heap, START_INDEX, heap.Length);
+            iCount = START_INDEX;
         }
 
         private void PercolateDown(int index)
         {
-            int leafIndex = SelectMinLeaf(index, iCount);
+            int leafIndex = SelectPerfectLeaf(index, iCount);
             while (heap[index].entity.CompareTo(heap[leafIndex].entity) < 0)
             {
                 leafIndex /= 2;
@@ -75,13 +90,13 @@ namespace ETimer
 
             var temp = heap[leafIndex];
             heap[leafIndex] = heap[index];
-            heap[index].pos = leafIndex;
+            heap[leafIndex].pos = leafIndex;
 
             while (leafIndex > index)
             {
                 var oldData = heap[leafIndex / 2];
                 heap[leafIndex / 2] = temp;
-                temp.pos = leafIndex / 2;
+                heap[leafIndex / 2].pos = leafIndex / 2;
                 leafIndex /= 2;
                 temp = oldData;
             }
@@ -93,22 +108,25 @@ namespace ETimer
             for (i = index; heap[i / 2].entity.CompareTo(handler.entity) > 0; i /= 2)
             {
                 heap[i] = heap[i / 2];
-                heap[i / 2].pos = i;
+                heap[i].pos = i;
             }
 
             heap[i] = handler;
-            handler.pos = i;
+            heap[i].pos = i;
         }
 
-        private int SelectMinLeaf(int start, int end)
+        private int SelectPerfectLeaf(int start, int end)
         {
-            int child = start * 2 + 1;
+            int child = start;
 
-            while (child < end)
+            while (true)
             {
-                if (child + 1 > end) break;
-                else if (heap[child].entity.CompareTo(heap[child + 1].entity) > 0) child = child * 2 + 2;
-                else child = child * 2 + 1;
+                if (child + 1 >= end) break;
+
+                int nextChild = child * 2;
+                if (nextChild >= end) break;
+                if (heap[nextChild].entity.CompareTo(heap[nextChild + 1].entity) > 0) nextChild = nextChild + 1;
+                child = nextChild;
             }
 
             return child;
@@ -143,7 +161,8 @@ namespace ETimer
             }
         }
 
+        private const int START_INDEX = 1;
         private int iCount;
-        private Element[] heap = new Element[32];
+        private Element[] heap;
     }
 }
