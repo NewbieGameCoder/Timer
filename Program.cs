@@ -8,19 +8,16 @@ namespace Timer
         static void Main(string[] args)
         {
             int icount = 0;
-            TimeSpan ts = DateTime.Now - new DateTime(1970, 1, 1, 0, 0, 0, 0);
             Dictionary<int, Action> dict = new Dictionary<int, Action>();
             List<int> list = new List<int>();
+            Random random = new Random();
 
             for (int i = 0; i < 150; ++i)
             {
                 int index = i;
-                Action trigger = () =>
-                {
-                    Console.WriteLine(index);
-                    Console.WriteLine(icount++);
-                };
-                int timerID = ETimer.Timer.Instance.Add((long)ts.TotalSeconds + i, trigger);
+                long second = random.Next(0, 100);
+                Action trigger = () => { Console.WriteLine(second + ", " + index + ", " + icount++); };
+                int timerID = ETimer.Timer.Instance.Add(second, trigger);
                 list.Add(timerID);
                 dict.Add(timerID, trigger);
             }
@@ -31,12 +28,12 @@ namespace Timer
                 ETimer.Timer.Instance.Remove(timerID, dict[timerID]);
             }
 
-            while (icount < 150)
+            while (true)
             {
-                ts = DateTime.Now - new DateTime(1970, 1, 1, 0, 0, 0, 0);
-                ETimer.Timer.Instance.Poll((long)ts.TotalSeconds);
+                ETimer.Timer.Instance.Poll();
                 System.Threading.Thread.Sleep(1);
             }
+
             Console.WriteLine("Hello World!");
         }
     }

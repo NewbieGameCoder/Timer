@@ -24,7 +24,7 @@ namespace ETimer
 
         public static TimerHandler GetDefaultTopElement()
         {
-            return new TimerHandler() { poolPos = -1, timestamp = -2 };
+            return new TimerHandler() {poolPos = -1, timestamp = -2};
         }
     }
 
@@ -43,9 +43,11 @@ namespace ETimer
             }
         }
 
-        public int Add(long timestamp, Action callback)
+        public int Add(float second, Action callback)
         {
             int pos = -1;
+            TimeSpan ts = DateTime.Now - StartTime;
+            long timestamp = (long) ts.TotalMilliseconds + (long) second * 1000;
 
             TimerNode node;
             if (head.index != 0)
@@ -61,7 +63,7 @@ namespace ETimer
                 pos = list.Count;
                 list.Add(new TimerNode(pos, timestamp, callback));
                 node = list[pos];
-                count = pos + 1;
+                size = pos + 1;
             }
 
             Enqueue(pos, node);
@@ -72,7 +74,7 @@ namespace ETimer
         public void Remove(int timerID, Action callback)
         {
             int pos = timerID;
-            if (pos > 0 && pos < count)
+            if (pos > 0 && pos < size)
             {
                 var node = list[pos];
                 if (node.timestamp == -1 || node.callback != callback)
@@ -91,8 +93,11 @@ namespace ETimer
             else throw new Exception("Wrong timerID");
         }
 
-        public void Poll(long curTimestamp)
+        public void Poll()
         {
+            TimeSpan ts = DateTime.Now - StartTime;
+            long curTimestamp = (long) ts.TotalMilliseconds;
+            
             while (!queue.Empty)
             {
                 if (queue.Peek(out var handler) && handler.timestamp <= curTimestamp)
@@ -130,7 +135,7 @@ namespace ETimer
             int headPos = -1;
             if (handlerGroup.TryGetValue(node.timestamp, out var handlerHead))
             {
-                headPos = handlerHead.GetEnumerator().Current.poolPos;
+                headPos = handlerHead.Current.poolPos;
             }
 
             if (headPos != -1)
@@ -142,7 +147,7 @@ namespace ETimer
 
             if (handlerHead == null)
             {
-                TimerHandler newHander = new TimerHandler { timestamp = node.timestamp, poolPos = pos };
+                TimerHandler newHander = new TimerHandler {timestamp = node.timestamp, poolPos = pos};
                 handlerHead = queue.Push(newHander);
                 handlerGroup[node.timestamp] = handlerHead;
             }
@@ -152,7 +157,7 @@ namespace ETimer
         {
             if (handlerGroup.TryGetValue(node.timestamp, out var handlerHead))
             {
-                var handler = handlerHead.GetEnumerator().Current;
+                var handler = handlerHead.Current;
                 if (handler.poolPos == pos)
                 {
                     if (node.nextSiblingIndex == -1)
@@ -163,7 +168,7 @@ namespace ETimer
                     else
                     {
                         var newHandler = new TimerHandler()
-                        { poolPos = node.nextSiblingIndex, timestamp = node.timestamp };
+                            {poolPos = node.nextSiblingIndex, timestamp = node.timestamp};
                         queue.Assign(handlerHead, newHandler);
                     }
                 }
@@ -176,7 +181,7 @@ namespace ETimer
             list = new List<TimerNode>(128);
             head = new TimerNode(0, 0, null);
             list.Add(head);
-            count = list.Count;
+            size = list.Count;
         }
 
         class TimerNode
@@ -197,12 +202,15 @@ namespace ETimer
 
         private static Timer _instance;
 
-        private int count;
+        private int size;
         private List<TimerNode> list;
         private TimerNode head;
-        private PriorityQueue<TimerHandler> queue = new PriorityQueue<TimerHandler>(TimerHandler.GetDefaultTopElement());
+        private DateTime StartTime = new DateTime(1970, 1, 1, 0, 0, 0, 0);
 
-        private Dictionary<long, IEnumerable<TimerHandler>> handlerGroup =
-            new Dictionary<long, IEnumerable<TimerHandler>>();
+        private PriorityQueue<TimerHandler>
+            queue = new PriorityQueue<TimerHandler>(TimerHandler.GetDefaultTopElement());
+
+        private Dictionary<long, IEnumerator<TimerHandler>> handlerGroup =
+            new Dictionary<long, IEnumerator<TimerHandler>>();
     }
 }

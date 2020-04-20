@@ -21,7 +21,7 @@ namespace ETimer
             heap[0] = topEle;
         }
 
-        public IEnumerable<T> Push(T handler)
+        public IEnumerator<T> Push(T handler)
         {
             if (iCount == heap.Length) EnsureCapacity(iCount + 1);
 
@@ -58,20 +58,20 @@ namespace ETimer
             return false;
         }
 
-        public void Assign(IEnumerable<T> handler, T entity)
+        public void Assign(IEnumerator<T> handler, T entity)
         {
             if (!(handler is Element ele)) throw new Exception("Wrong PriorityQueue element type");
 
             ele.entity = entity;
         }
 
-        public void Delete(IEnumerable<T> handler)
+        public void Delete(IEnumerator<T> handler)
         {
             if (!(handler is Element ele)) throw new Exception("Wrong PriorityQueue element type");
 
             ele.entity.DeleteProcess();
             PercolateUp(ele.pos, ele);
-            if (!Pop(out var entity)) throw new Exception("Delete failed");
+            if (!Pop(out _)) throw new Exception("Delete failed");
         }
 
         public void Clear()
@@ -145,20 +145,34 @@ namespace ETimer
             heap = newArray;
         }
 
-        private class Element : IEnumerable<T>
+        private class Element : IEnumerator<T>
         {
             public int pos;
             public T entity;
-
-            public IEnumerator<T> GetEnumerator()
+            public T Current => entity;
+            object IEnumerator.Current => Current;
+            
+            public void Reset()
             {
-                yield return entity;
+                current = default(T);
             }
 
-            IEnumerator IEnumerable.GetEnumerator()
+            public bool MoveNext()
             {
-                yield return entity;
+                if (current.CompareTo(entity) != 0)
+                {
+                    current = entity;
+                    return true;
+                }
+
+                return false;
             }
+
+            public void Dispose()
+            {
+            }
+            
+            private T current;
         }
 
         private const int START_INDEX = 1;
